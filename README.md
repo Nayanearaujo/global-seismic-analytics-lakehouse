@@ -37,3 +37,15 @@ Lakehouse de dados sísmicos globais no Databricks (Free Edition), a partir dos 
 
 USGS Earthquake Hazards Program — FDSN Web Service:
 `https://earthquake.usgs.gov/fdsnws/event/1/query`
+
+## Padrão de commits
+
+Use `tipo(escopo): descrição curta`, em português, com um verbo no presente. Faça um commit por mudança lógica. Se precisar explicar a motivação ou registrar uma validação, use o corpo do commit.
+
+| Tipo | Quando usar | Exemplo |
+|---|---|---|
+| `feat` | Nova funcionalidade | `feat(bronze): ingere eventos com Auto Loader` |
+| `fix` | Correção de comportamento | `fix(silver): corrige deduplicação por ID do USGS` |
+| `docs` | Alteração na documentação | `docs(readme): documenta as camadas do lakehouse` |
+| `test` | Adição ou ajuste de testes | `test(ingestao): cobre respostas vazias do USGS` |
+| `chore` | Manutenção do repositório | `chore(git): atualiza arquivos ignorados` |

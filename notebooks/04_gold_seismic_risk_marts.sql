@@ -1,0 +1,6 @@
+-- =============================================================================
+-- NOTEBOOK: 04_gold_seismic_risk_marts.sql (Aula 3/4)
+-- OBJETIVO: Construir os marts analíticos de risco sísmico na camada Gold
+--           (sismos.gold.*), prontos para dashboards e consultas analíticas.
+-- STATUS: Placeholder — implementar durante as Aulas 3/4.
+-- =============================================================================

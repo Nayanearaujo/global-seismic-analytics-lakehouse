@@ -1,51 +1,53 @@
-# Parte 1 — Ingestão histórica do USGS e camada Bronze
+# Aula 2 — USGS e EMSC na Bronze
 
-A Aula 2 apresentou a API do USGS, o particionamento mensal da landing e a ingestão com Auto Loader. No projeto, o notebook de extração também confere a contagem da fonte e sinaliza meses que falharam. A Bronze preserva o array `features` para o `explode` na Silver.
+O ano de 2025 é extraído em 12 janelas mensais UTC com magnitude mínima de 2,5. As duas fontes passam pelas mesmas funções e preservam o array `features` para a Silver.
 
-## Execução
+| Fonte | Formato da API | Landing | Tabela Bronze e nome do checkpoint |
+|---|---|---|---|
+| USGS | `geojson` | `terremotos/ano=2025/mes=MM.geojson` | `terremotos_raw` |
+| EMSC | `json` | `emsc/ano=2025/mes=MM.geojson` | `emsc_raw` |
 
-1. Crie o catálogo `sismos`, o schema `bronze` e os volumes `landing` e `checkpoints` com o SQL de setup da Aula 1.
-2. Execute `notebooks/01_extract_usgs_landing.py`. Para cada mês de 2025, o notebook consulta `/count` e `/query` com os mesmos filtros, incluindo `minmagnitude=1.0` e `eventtype=earthquake`. O primeiro instante e o último milissegundo do mês são explícitos em UTC, pois os dois limites do USGS são inclusivos. A extração usa janelas mensais. Se uma janela exceder 20.000 eventos, ela falha e requer subdivisão ou paginação.
-3. Execute `notebooks/02_bronze_autoloader.py` após o sucesso da extração. O Auto Loader processa os arquivos disponíveis, grava os documentos em `sismos.bronze.terremotos_raw` e encerra. Reutilize o checkpoint nas próximas execuções. A landing histórica preserva os arquivos existentes. Se a fonte revisar um mês já publicado, trate a revisão antes de reprocessá-lo.
+1. No Databricks, crie o catálogo `sismos`, o schema `bronze` e os volumes `landing` e `checkpoints` com o setup da Aula 1.
+2. Execute `01_extract_usgs_landing.py` para cada fonte pelo widget `fonte`, com `ano=2025`. O notebook compara o `/count` com o número de eventos do `/query` em cada mês usando os mesmos filtros e encerra com erro se algum mês falhar. As janelas terminam no último milissegundo do mês para respeitar o limite inclusivo documentado pelo USGS. O código preserva os arquivos existentes e sinaliza revisões que alterem o conteúdo já publicado.
+3. Execute `02_bronze_autoloader.py` para cada fonte. Cada execução processa os arquivos disponíveis, grava uma linha por documento e termina. Rode a Bronze do EMSC pela segunda vez com o mesmo checkpoint. A saída esperada é `0 linhas novas`.
+4. Se o Databricks bloquear o USGS, o `landing_2025.zip` do professor pode ser extraído no volume landing, mantendo o caminho `terremotos/ano=2025/mes=MM.geojson`. Se o domínio do EMSC retornar `ConnectionError`, avise no grupo da turma conforme o guia.
 
-[Documentação da API do USGS](https://earthquake.usgs.gov/fdsnws/event/1/)
+## Evidências do desafio
 
-## Reconciliação da Bronze
-
-A extração confere o total retornado por `/count` com o tamanho de `features` e com `metadata.count` antes de salvar cada arquivo. Na Bronze, a consulta abaixo compara a quantidade ingerida com esse total registrado no GeoJSON e mostra meses ausentes ou repetidos. A carga esperada tem 12 meses com status `OK`.
+A consulta compara os eventos mensais das duas fontes e mostra meses ausentes ou repetidos. Compare também os totais com o `/count` impresso pela extração. Os 29.265 eventos do USGS são a referência do snapshot da aula. Uma nova extração pode variar com as revisões do catálogo.
 
 ```sql
 WITH meses AS (
     SELECT explode(sequence(1, 12)) AS mes
 ),
-bronze AS (
-    SELECT
-        CAST(mes AS INT) AS mes,
-        COUNT(*) AS documentos,
-        SUM(size(features)) AS eventos,
-        SUM(CAST(metadata.count AS BIGINT)) AS eventos_usgs
+documentos AS (
+    SELECT 'USGS' AS fonte, _source_file, size(features) AS eventos
     FROM sismos.bronze.terremotos_raw
     WHERE CAST(ano AS INT) = 2025
-    GROUP BY CAST(mes AS INT)
+    UNION ALL
+    SELECT 'EMSC' AS fonte, _source_file, size(features) AS eventos
+    FROM sismos.bronze.emsc_raw
+    WHERE CAST(ano AS INT) = 2025
 )
 SELECT
-    meses.mes,
-    COALESCE(bronze.documentos, 0) AS documentos,
-    bronze.eventos,
-    bronze.eventos_usgs,
-    CASE
-        WHEN bronze.documentos = 1 AND bronze.eventos = bronze.eventos_usgs THEN 'OK'
-        ELSE 'REVISAR'
-    END AS status
-FROM meses
-LEFT JOIN bronze USING (mes)
-ORDER BY meses.mes;
+    m.mes,
+    COUNT_IF(d.fonte = 'USGS') AS arquivos_usgs,
+    SUM(CASE WHEN d.fonte = 'USGS' THEN d.eventos END) AS eventos_usgs,
+    COUNT_IF(d.fonte = 'EMSC') AS arquivos_emsc,
+    SUM(CASE WHEN d.fonte = 'EMSC' THEN d.eventos END) AS eventos_emsc
+FROM meses m
+LEFT JOIN documentos d
+    ON m.mes = CAST(regexp_extract(d._source_file, 'mes=([0-9]+)', 1) AS INT)
+GROUP BY m.mes
+ORDER BY m.mes;
 ```
 
-Depois de conferir os 12 meses, calcule o total carregado.
+Cada catálogo tem cobertura, critérios de inclusão e revisões próprios. Os totais com o mesmo ano e a mesma magnitude mínima podem divergir. A reconciliação de completude é feita entre cada catálogo e sua própria Bronze.
+
+Execute o histórico após a primeira e a segunda carga do EMSC. Registre a saída de zero linhas novas e compare os dois históricos para confirmar que a reexecução não acrescentou uma escrita com registros.
 
 ```sql
-SELECT SUM(size(features)) AS total_eventos
-FROM sismos.bronze.terremotos_raw
-WHERE CAST(ano AS INT) = 2025;
+DESCRIBE HISTORY sismos.bronze.emsc_raw;
 ```
+
+Fontes dos dados e requisitos da Aula 2. [USGS](https://earthquake.usgs.gov/fdsnws/event/1/) · [EMSC SeismicPortal, CC BY 4.0](https://seismicportal.eu/fdsn-wsevent.html) · [Guia e desafio da Aula 2](https://ckoliveiraa.github.io/lakehouse-sismico/aula-2.html)

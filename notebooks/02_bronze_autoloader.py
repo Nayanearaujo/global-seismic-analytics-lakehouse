@@ -1,9 +1,26 @@
 # Databricks notebook source
+# MAGIC %md
+# MAGIC # 02 · Carga incremental na Bronze
+# MAGIC Aula 2 · Landing → tabelas Delta
+# MAGIC Execute depois que a extração da fonte tiver conferido os 12 meses.
+# MAGIC
+# MAGIC ## 1. Mapear as fontes e tabelas
+# MAGIC USGS grava em `sismos.bronze.terremotos_raw` e EMSC em `sismos.bronze.emsc_raw`.
+
+# COMMAND ----------
+
 SOURCES = {
     "usgs": ("terremotos", "terremotos_raw"),
     "emsc": ("emsc", "emsc_raw"),
 }
 
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 2. Preparar a carga com Auto Loader
+# MAGIC Cada arquivo mensal vira uma linha. O array `features` é preservado, e cada fonte usa o próprio checkpoint.
+
+# COMMAND ----------
 
 def load_bronze(source):
     folder, table = SOURCES[source]
@@ -36,5 +53,20 @@ def load_bronze(source):
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## 3. Selecionar a fonte
+# MAGIC Execute a célula de parâmetros e escolha a fonte em **Mostrar parâmetros**.
+
+# COMMAND ----------
+
 dbutils.widgets.dropdown("fonte", "usgs", list(SOURCES))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 4. Executar e conferir a carga
+# MAGIC Na primeira carga de 2025, espere 12 linhas novas. Para testar a reexecução, rode esta mesma célula novamente com a mesma fonte. O resultado esperado é 0 linhas novas.
+
+# COMMAND ----------
+
 load_bronze(dbutils.widgets.get("fonte"))

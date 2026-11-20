@@ -1,8 +1,24 @@
-# =============================================================================
-# NOTEBOOK: 02_bronze_autoloader.py (Aula 2)
-# OBJETIVO: Ler incrementalmente os arquivos .geojson do volume landing com o
-#           Auto Loader (cloudFiles) e gravar na tabela bronze
-#           sismos.bronze.terremotos_raw, garantindo idempotência sem
-#           duplicar registros entre execuções.
-# STATUS: Placeholder — implementar durante a Aula 2 (18/11).
-# =============================================================================
+# Databricks notebook source
+LANDING = "/Volumes/sismos/bronze/landing/terremotos"
+CHECKPOINT = "/Volumes/sismos/bronze/checkpoints/terremotos_raw"
+TARGET = "sismos.bronze.terremotos_raw"
+
+documents = (
+    spark.readStream.format("cloudFiles")
+    .option("cloudFiles.format", "json")
+    .option("cloudFiles.schemaLocation", f"{CHECKPOINT}/schema")
+    .option("cloudFiles.partitionColumns", "ano,mes")
+    .option("multiLine", "true")
+    .option("mode", "FAILFAST")
+    .load(LANDING)
+    .selectExpr("*", "_metadata.file_path AS _file_path", "current_timestamp() AS _ingestion_time")
+)
+
+query = (
+    documents.writeStream.format("delta")
+    .outputMode("append")
+    .option("checkpointLocation", CHECKPOINT)
+    .trigger(availableNow=True)
+    .toTable(TARGET)
+)
+query.awaitTermination()

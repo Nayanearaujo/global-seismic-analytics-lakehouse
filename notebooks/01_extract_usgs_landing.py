@@ -5,11 +5,12 @@ from pathlib import Path
 
 import requests
 
-API = "https://earthquake.usgs.gov/fdsnws/event/1"
-LANDING = Path("/Volumes/sismos/bronze/landing/terremotos")
-YEAR = 2025
-MIN_MAGNITUDE = 1.0
-MAX_EVENTS = 20_000
+SOURCES = {
+    "usgs": ("https://earthquake.usgs.gov/fdsnws/event/1", "terremotos", "geojson"),
+    "emsc": ("https://www.seismicportal.eu/fdsnws/event/1", "emsc", "json"),
+}
+LANDING = Path("/Volumes/sismos/bronze/landing")
+MIN_MAGNITUDE = 2.5
 
 
 def month_filters(year, month):
@@ -21,21 +22,24 @@ def month_filters(year, month):
         "starttime": start.isoformat(timespec="milliseconds"),
         "endtime": end.isoformat(timespec="milliseconds"),
         "minmagnitude": MIN_MAGNITUDE,
-        "eventtype": "earthquake",
+        "orderby": "time-asc",
     }
 
 
-def fetch_month(session, year, month):
-    filters = month_filters(year, month)
-    count_response = session.get(f"{API}/count", params=filters, timeout=60)
+def fetch_month(session, source, year, month):
+    api, _, response_format = SOURCES[source]
+    params = {**month_filters(year, month), "format": response_format}
+    count_response = session.get(f"{api}/count", params=params, timeout=60)
     count_response.raise_for_status()
-    expected = int(count_response.text)
-    if expected > MAX_EVENTS:
-        raise ValueError(f"{expected} eventos excedem o limite por consulta do USGS")
+    count = count_response.json()
+    expected = count["count"]
+    maximum = count.get("maxAllowed")
+    if maximum is not None and expected > maximum:
+        raise ValueError(f"{expected} eventos excedem o limite de {maximum} por consulta")
 
     response = session.get(
-        f"{API}/query",
-        params={**filters, "format": "geojson"},
+        f"{api}/query",
+        params=params,
         timeout=60,
     )
     response.raise_for_status()
@@ -44,37 +48,38 @@ def fetch_month(session, year, month):
         payload.get("type") != "FeatureCollection"
         or not isinstance(payload.get("features"), list)
         or len(payload["features"]) != expected
-        or payload.get("metadata", {}).get("count") != expected
+        or payload.get("metadata", {}).get("count", expected) != expected
     ):
         raise ValueError(f"GeoJSON inconsistente com os {expected} eventos do /count")
-    return payload
+    return response.content, expected
 
 
-def extract_year(year):
+def extract_year(source, year):
+    _, folder, _ = SOURCES[source]
     failures = []
     with requests.Session() as session:
         for month in range(1, 13):
             period = f"{year}-{month:02d}"
-            path = LANDING / f"ano={year}" / f"mes={month:02d}" / f"earthquakes_{period}.geojson"
+            path = LANDING / folder / f"ano={year}" / f"mes={month:02d}.geojson"
             try:
-                payload = fetch_month(session, year, month)
+                body, expected = fetch_month(session, source, year, month)
                 if path.exists():
-                    saved = json.loads(path.read_bytes())
-                    if (
-                        saved.get("features") != payload["features"]
-                        or saved.get("metadata", {}).get("count") != payload["metadata"]["count"]
-                    ):
+                    if json.loads(path.read_bytes())["features"] != json.loads(body)["features"]:
                         raise ValueError(f"O arquivo histórico em {path} diverge da API")
                 else:
                     path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-                print(f"{period}: {len(payload['features'])} eventos conferidos")
-            except (requests.RequestException, OSError, ValueError) as error:
+                    path.write_bytes(body)
+                print(f"{period}: {expected} eventos conferidos")
+            except (requests.RequestException, OSError, ValueError, KeyError, TypeError) as error:
                 failures.append(f"{period}: {error}")
 
     if failures:
         raise RuntimeError("Extração incompleta:\n" + "\n".join(failures))
 
 
-if __name__ == "__main__":
-    extract_year(YEAR)
+# COMMAND ----------
+
+if "dbutils" in globals():
+    dbutils.widgets.dropdown("fonte", "usgs", list(SOURCES))
+    dbutils.widgets.text("ano", "2025")
+    extract_year(dbutils.widgets.get("fonte"), int(dbutils.widgets.get("ano")))

@@ -3,6 +3,21 @@
 # MAGIC # Desafio 2 · USGS e EMSC na Bronze
 # MAGIC Eventos de janeiro a dezembro de 2025, com magnitude mínima de 2,5.
 # MAGIC
+# MAGIC ## Diferenças de contrato entre USGS e EMSC
+# MAGIC
+# MAGIC `extract_year(source, year)` e `load_bronze(source)` reaproveitam o fluxo para os dois catálogos.
+# MAGIC
+# MAGIC | Aspecto | USGS | EMSC | Como o pipeline trata |
+# MAGIC |---|---|---|---|
+# MAGIC | Formato | `geojson` | `json` | A configuração da fonte define o formato de `/count` e `/query`. |
+# MAGIC | Contagem e limite | `count` e `maxAllowed` | `count` | Confere a quantidade recebida com `/count` e verifica `maxAllowed` quando informado. |
+# MAGIC | Janela mensal | Horários em UTC | Mesmo recorte | Cada consulta usa o primeiro instante e o último milissegundo do mês, com magnitude ≥ 2,5. |
+# MAGIC | Campos de revisão e local | `updated`, `place` | `lastupdate`, `flynn_region` | A Bronze preserva o array `features` de cada fonte para tratamento na Silver. |
+# MAGIC | Checkpoint | `checkpoints/terremotos_raw` | `checkpoints/emsc_raw` | Cada fluxo mantém seu próprio progresso e caminho de schema. |
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## 1. Contagem mensal lado a lado
 # MAGIC Cada arquivo mensal ocupa uma linha na Bronze. A contagem de eventos vem do tamanho de `features`.
 

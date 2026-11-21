@@ -1,15 +1,5 @@
 # Global Seismic Analytics Lakehouse
 
-## Como rodar
-
-1. Crie o catálogo, os schemas e os volumes com a **parte 2** do [SQL de configuração do Unity Catalog](notebooks/00_setup_and_delta_fundamentals.sql).
-2. Antes de baixar o histórico, confirme que o workspace consegue acessar a API com o [teste de conectividade do USGS](notebooks/00_validate_usgs_api.py).
-3. Rode a extração uma vez para `usgs` e outra para `emsc`, com `ano=2025`. Confira a saída dos 12 meses no [notebook de extração](notebooks/01_extract_usgs_landing.py).
-4. Carregue a Bronze para cada fonte. Em uma tabela vazia, a carga de 2025 deve gerar 12 linhas por catálogo. [Notebook de carga](notebooks/02_bronze_autoloader.py)
-5. Confira as contagens mensais e o histórico Delta no [notebook de evidências](notebooks/evidencias_desafio_02.py).
-
-Os caminhos de armazenamento, as consultas SQL e os prints estão no [guia da Aula 2](docs/parte_1_ingestao_bronze.md). O primeiro teste de ingestão está registrado no [notebook inicial do USGS](notebooks/ingestao_inicial_usgs.ipynb).
-
 ## Sobre o projeto
 
 Projeto da trilha de Engenharia de Dados Pleno da EmpregaDados. O pipeline consulta os catálogos sísmicos do USGS e do EMSC e carrega os dados na camada Bronze do Databricks Free Edition. O recorte da Aula 2 vai de janeiro a dezembro de 2025, com magnitude mínima de 2,5.
@@ -41,6 +31,16 @@ A Silver está prevista para a Aula 3, com tipagem e deduplicação no nível de
 | EMSC | 12 | 79.492 | 12 de 12 |
 
 Nos 24 pares de fonte e mês, a Bronze tinha um arquivo e a mesma contagem de eventos registrada na extração. Ao rodar a carga do EMSC novamente com o mesmo checkpoint, o Auto Loader gravou **zero linhas novas** e a tabela Delta permaneceu na **versão 2**. [Entrega do Desafio 2](https://github.com/ckoliveiraa/lakehouse-sismico/issues/3)
+
+## Como rodar
+
+1. Crie o catálogo, os schemas e os volumes com a **parte 2** do [SQL de configuração do Unity Catalog](notebooks/00_setup_and_delta_fundamentals.sql).
+2. Antes de baixar o histórico, confirme que o workspace consegue acessar a API com o [teste de conectividade do USGS](notebooks/00_validate_usgs_api.py).
+3. Rode a extração uma vez para `usgs` e outra para `emsc`, com `ano=2025`. Confira a saída dos 12 meses no [notebook de extração](notebooks/01_extract_usgs_landing.py).
+4. Carregue a Bronze para cada fonte. Em uma tabela vazia, a carga de 2025 deve gerar 12 linhas por catálogo. [Notebook de carga](notebooks/02_bronze_autoloader.py)
+5. Confira as contagens mensais e o histórico Delta no [notebook de evidências](notebooks/evidencias_desafio_02.py).
+
+Os caminhos de armazenamento, as consultas SQL e os prints estão no [guia da Aula 2](docs/parte_1_ingestao_bronze.md). O primeiro teste de ingestão está registrado no [notebook inicial do USGS](notebooks/ingestao_inicial_usgs.ipynb).
 
 ## Fontes
 

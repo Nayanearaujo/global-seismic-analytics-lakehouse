@@ -1,38 +1,33 @@
 # Global Seismic Analytics Lakehouse
 
-Pipeline de dados sísmicos do USGS e do EMSC no Databricks Free Edition. A Aula 2 cobre o histórico de janeiro a dezembro de 2025, com magnitude mínima de 2,5, da API FDSN até a Bronze.
+Projeto da trilha de Engenharia de Dados Pleno da EmpregaDados. O pipeline consulta os catálogos sísmicos do USGS e do EMSC e carrega os dados na camada Bronze do Databricks Free Edition. O recorte da Aula 2 vai de janeiro a dezembro de 2025, com magnitude mínima de 2,5.
 
 ## Como executar
 
-| Ordem | Arquivo | O que fazer |
-|---|---|---|
-| 1 | [Setup do Unity Catalog](notebooks/00_setup_and_delta_fundamentals.sql) | Execute a parte 2 do SQL para criar o catálogo, os schemas e os volumes. As outras partes são demonstrações da Aula 1. |
-| 2 | [Teste de conectividade do USGS](notebooks/00_validate_usgs_api.py) | Execute a consulta de contagem antes de carregar o histórico. |
-| 3 | [Extração](notebooks/01_extract_usgs_landing.py) | Execute para `usgs` e `emsc`, com `ano=2025`. A saída registra a contagem conferida de cada mês. |
-| 4 | [Carga Bronze](notebooks/02_bronze_autoloader.py) | Execute para as duas fontes. Na primeira carga, espere 12 linhas por fonte. |
-| 5 | [Evidências do Desafio 2](notebooks/evidencias_desafio_02.py) | Consulte as contagens mensais, a reconciliação e o histórico Delta. |
+1. Crie o catálogo, os schemas e os volumes com a **parte 2** do [SQL de configuração do Unity Catalog](notebooks/00_setup_and_delta_fundamentals.sql).
+2. Antes de baixar o histórico, confirme que o workspace consegue acessar a API com o [teste de conectividade do USGS](notebooks/00_validate_usgs_api.py).
+3. Rode a extração uma vez para `usgs` e outra para `emsc`, com `ano=2025`. Confira a saída dos 12 meses no [notebook de extração](notebooks/01_extract_usgs_landing.py).
+4. Carregue a Bronze para cada fonte. Em uma tabela vazia, a carga de 2025 deve gerar 12 linhas por catálogo. [Notebook de carga](notebooks/02_bronze_autoloader.py)
+5. Confira as contagens mensais e o histórico Delta no [notebook de evidências](notebooks/evidencias_desafio_02.py).
 
-O [guia da Aula 2](docs/parte_1_ingestao_bronze.md) detalha os caminhos, as consultas SQL e a execução registrada. O [notebook inicial do USGS](notebooks/ingestao_inicial_usgs.ipynb) documenta o primeiro teste de ingestão.
+Os caminhos de armazenamento, as consultas SQL e os prints estão no [guia da Aula 2](docs/parte_1_ingestao_bronze.md). O primeiro teste de ingestão está registrado no [notebook inicial do USGS](notebooks/ingestao_inicial_usgs.ipynb).
 
-## Arquitetura
+## Como os dados chegam à Bronze
 
-| Camada | Conteúdo | Estado |
-|---|---|---|
-| Landing | Respostas das APIs em arquivos mensais, separadas por fonte. | Validada |
-| Bronze | `sismos.bronze.terremotos_raw` e `sismos.bronze.emsc_raw`. Cada linha representa um documento mensal e preserva o array `features`. | Validada |
-| Silver | Tipagem e deduplicação no grão de evento, com `MERGE`. | Prevista para a Aula 3 |
-| Gold | Agregações para análise de risco sísmico. | Prevista para as Aulas 3 e 4 |
+A extração consulta cada mês em UTC e compara o total informado por `/count` com o número de eventos em `features`. Quando as contagens batem, a resposta da API é gravada na Landing, na pasta da fonte.
 
-A extração usa janelas mensais em UTC e compara `/count` com o tamanho de `features` antes de gravar. O Auto Loader usa um checkpoint por tabela, com o schema inferido em um subdiretório próprio. A carga é retomada com o checkpoint da mesma fonte.
+O Auto Loader lê os arquivos mensais e grava em `sismos.bronze.terremotos_raw` ou `sismos.bronze.emsc_raw`. Cada linha da Bronze representa um arquivo mensal inteiro e preserva seu array `features`. Cada tabela tem seu próprio checkpoint para retomar a carga a partir dos arquivos já processados.
 
-## Validação de 20/11/2026
+A Silver está prevista para a Aula 3, com tipagem e deduplicação no nível de evento. A Gold reunirá as agregações para análise de risco sísmico nas Aulas 3 e 4.
 
-| Fonte | Arquivos mensais | Eventos na Bronze | Meses aprovados |
+## Resultados da execução de 20/11/2026
+
+| Fonte | Arquivos | Eventos na Bronze | Meses conferidos |
 |---|---:|---:|---:|
 | USGS | 12 | 29.312 | 12 de 12 |
 | EMSC | 12 | 79.492 | 12 de 12 |
 
-As 24 combinações de fonte e mês bateram com as contagens registradas na extração. Na reexecução da Bronze do EMSC com o mesmo checkpoint, foram gravadas zero linhas novas e o histórico Delta permaneceu na versão 2. [Entrega e prints](https://github.com/ckoliveiraa/lakehouse-sismico/issues/3)
+Nos 24 pares de fonte e mês, a Bronze tinha um arquivo e a mesma contagem de eventos registrada na extração. Ao rodar a carga do EMSC novamente com o mesmo checkpoint, o Auto Loader gravou **zero linhas novas** e a tabela Delta permaneceu na **versão 2**. [Entrega do Desafio 2](https://github.com/ckoliveiraa/lakehouse-sismico/issues/3)
 
 ## Fontes
 
@@ -42,12 +37,4 @@ As 24 combinações de fonte e mês bateram com as contagens registradas na extr
 
 ## Padrão de commits
 
-Use `tipo(escopo): descrição curta`, em português, com um verbo no presente. Faça um commit por mudança lógica. Se precisar explicar a motivação ou registrar uma validação, use o corpo do commit.
-
-| Tipo | Quando usar | Exemplo |
-|---|---|---|
-| `feat` | Nova funcionalidade | `feat(bronze): ingere eventos com Auto Loader` |
-| `fix` | Correção de comportamento | `fix(silver): corrige deduplicação por ID do USGS` |
-| `docs` | Alteração na documentação | `docs(readme): documenta as camadas do lakehouse` |
-| `test` | Adição ou ajuste de testes | `test(ingestao): cobre respostas vazias do USGS` |
-| `chore` | Manutenção do repositório | `chore(git): atualiza arquivos ignorados` |
+Use `tipo(escopo): descrição curta`, em português, com um verbo no presente. Mantenha uma mudança por commit. Por exemplo, `fix(bronze): corrige a leitura dos arquivos mensais`.

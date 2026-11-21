@@ -50,26 +50,65 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 2. Reconciliação com a extração
-# MAGIC Compare os totais observados na Bronze com os totais da extração conferida pelo `/count` de cada fonte em 20/11/2026.
+# MAGIC ## 2. Reconciliação mensal com a extração
+# MAGIC
+# MAGIC As contagens de referência são da extração de 20/11/2026. Para cada fonte e mês, a Bronze deve ter um arquivo e a contagem esperada de eventos. O resumo abaixo deve mostrar 12 meses aprovados e zero divergências por fonte.
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC WITH conferencias AS (
-# MAGIC   SELECT 'USGS' AS fonte, COUNT(*) AS arquivos,
-# MAGIC          SUM(size(features)) AS eventos_bronze, 29312 AS eventos_extracao
+# MAGIC WITH referencia AS (
+# MAGIC   SELECT * FROM VALUES
+# MAGIC     (1, 2258, 5961), (2, 2186, 7482), (3, 2238, 6140),
+# MAGIC     (4, 2141, 6258), (5, 2022, 6195), (6, 2010, 5658),
+# MAGIC     (7, 4181, 7007), (8, 3082, 7350), (9, 2340, 6474),
+# MAGIC     (10, 2016, 6913), (11, 1948, 6398), (12, 2890, 7656)
+# MAGIC   AS r(mes, usgs, emsc)
+# MAGIC ),
+# MAGIC esperado AS (
+# MAGIC   SELECT 'USGS' AS fonte, mes, usgs AS eventos FROM referencia
+# MAGIC   UNION ALL
+# MAGIC   SELECT 'EMSC', mes, emsc FROM referencia
+# MAGIC ),
+# MAGIC documentos AS (
+# MAGIC   SELECT 'USGS' AS fonte, _source_file, size(features) AS eventos
 # MAGIC   FROM sismos.bronze.terremotos_raw WHERE CAST(ano AS INT) = 2025
 # MAGIC   UNION ALL
-# MAGIC   SELECT 'EMSC', COUNT(*), SUM(size(features)), 79492
+# MAGIC   SELECT 'EMSC', _source_file, size(features)
 # MAGIC   FROM sismos.bronze.emsc_raw WHERE CAST(ano AS INT) = 2025
+# MAGIC ),
+# MAGIC bronze AS (
+# MAGIC   SELECT fonte,
+# MAGIC          TRY_CAST(regexp_extract(_source_file, 'mes=([0-9]+)', 1) AS INT) AS mes,
+# MAGIC          COUNT(*) AS arquivos,
+# MAGIC          SUM(eventos) AS eventos
+# MAGIC   FROM documentos
+# MAGIC   GROUP BY 1, 2
 # MAGIC )
-# MAGIC SELECT fonte, arquivos, eventos_extracao, eventos_bronze,
-# MAGIC        eventos_bronze - eventos_extracao AS diferenca,
-# MAGIC        CASE WHEN arquivos = 12 AND eventos_bronze = eventos_extracao
+# MAGIC SELECT COALESCE(e.fonte, b.fonte) AS fonte,
+# MAGIC        COALESCE(e.mes, b.mes) AS mes,
+# MAGIC        COALESCE(b.arquivos, 0) AS arquivos_bronze,
+# MAGIC        e.eventos AS eventos_extracao,
+# MAGIC        b.eventos AS eventos_bronze,
+# MAGIC        CASE WHEN e.eventos = b.eventos AND b.arquivos = 1
 # MAGIC             THEN 'OK' ELSE 'REVISAR' END AS status
-# MAGIC FROM conferencias
-# MAGIC ORDER BY fonte DESC;
+# MAGIC FROM esperado e
+# MAGIC FULL OUTER JOIN bronze b ON e.fonte = b.fonte AND e.mes = b.mes
+# MAGIC ORDER BY fonte, mes;
+
+# COMMAND ----------
+
+from pyspark.sql import functions as F
+
+display(
+    _sqldf.groupBy("fonte")
+    .agg(
+        F.count("*").alias("meses_verificados"),
+        F.sum(F.when(F.col("status") == "OK", 1).otherwise(0)).alias("meses_ok"),
+        F.sum(F.when(F.col("status") == "REVISAR", 1).otherwise(0)).alias("divergencias"),
+    )
+    .orderBy("fonte")
+)
 
 # COMMAND ----------
 
@@ -90,3 +129,14 @@ display(
         F.col("operationMetrics")["numOutputRows"].cast("long").alias("linhas_gravadas"),
     ).orderBy("versao")
 )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 4. Reexecução da Bronze do EMSC
+# MAGIC
+# MAGIC Execute este teste manualmente após a primeira carga, mantendo os arquivos de origem e o checkpoint `checkpoints/emsc_raw`. Os resultados acima podem ser consultados sem reexecutar a carga.
+# MAGIC
+# MAGIC Em uma célula separada, execute `%run ./02_bronze_autoloader $fonte="emsc"`. O resultado esperado é `sismos.bronze.emsc_raw: 0 linhas novas`. Depois, execute novamente a consulta da seção 3 para verificar se a versão Delta permaneceu a mesma.
+# MAGIC
+# MAGIC Na execução de 20/11/2026, a tabela permaneceu na versão 2. [Evidências da execução](https://github.com/ckoliveiraa/lakehouse-sismico/issues/3#evid%C3%AAncias-da-execu%C3%A7%C3%A3o).

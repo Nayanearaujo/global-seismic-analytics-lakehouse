@@ -10,7 +10,7 @@ Pipeline de dados sísmicos do USGS e do EMSC no Databricks Free Edition. A Aula
 | 2 | [Teste de conectividade do USGS](notebooks/00_validate_usgs_api.py) | Execute a consulta de contagem antes de carregar o histórico. |
 | 3 | [Extração](notebooks/01_extract_usgs_landing.py) | Execute para `usgs` e `emsc`, com `ano=2025`. A saída registra a contagem conferida de cada mês. |
 | 4 | [Carga Bronze](notebooks/02_bronze_autoloader.py) | Execute para as duas fontes. Na primeira carga, espere 12 linhas por fonte. |
-| 5 | [Evidências do Desafio 2](notebooks/03_desafio_02_evidencias.py) | Consulte as contagens mensais, a reconciliação e o histórico Delta. |
+| 5 | [Evidências do Desafio 2](notebooks/evidencias_desafio_02.py) | Consulte as contagens mensais, a reconciliação e o histórico Delta. |
 
 O [guia da Aula 2](docs/parte_1_ingestao_bronze.md) detalha os caminhos, as consultas SQL e a execução registrada. A pasta [`notebooks/exploratory`](notebooks/exploratory) guarda a exploração inicial do USGS. O notebook de evidências pertence à Aula 2. O arquivo da Silver pertence à Aula 3.
 

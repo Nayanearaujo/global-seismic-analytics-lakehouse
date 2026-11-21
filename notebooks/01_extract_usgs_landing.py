@@ -1,4 +1,14 @@
 # Databricks notebook source
+# MAGIC %md
+# MAGIC # 01 · Extração dos catálogos sísmicos
+# MAGIC Aula 2 · USGS e EMSC → Landing
+# MAGIC O recorte do desafio é 2025, com magnitude mínima de 2,5. Rode para uma fonte por vez.
+# MAGIC
+# MAGIC ## 1. Configurar as fontes
+# MAGIC A configuração define a URL, o formato e a pasta de destino de cada catálogo.
+
+# COMMAND ----------
+
 import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -12,6 +22,13 @@ SOURCES = {
 LANDING = Path("/Volumes/sismos/bronze/landing")
 MIN_MAGNITUDE = 2.5
 
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 2. Definir a janela mensal em UTC
+# MAGIC Cada mês vai do primeiro instante até o último milissegundo. Isso mantém as viradas de mês sem sobreposição.
+
+# COMMAND ----------
 
 def month_filters(year, month):
     start = datetime(year, month, 1, tzinfo=timezone.utc)
@@ -25,6 +42,13 @@ def month_filters(year, month):
         "orderby": "time-asc",
     }
 
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 3. Conferir a resposta com a API
+# MAGIC A consulta a `/count` usa o mesmo filtro que `/query`. A quantidade de eventos recebidos precisa bater antes da gravação.
+
+# COMMAND ----------
 
 def fetch_month(session, source, year, month):
     api, _, response_format = SOURCES[source]
@@ -53,6 +77,13 @@ def fetch_month(session, source, year, month):
         raise ValueError(f"GeoJSON inconsistente com os {expected} eventos do /count")
     return response.content, expected
 
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 4. Salvar os arquivos mensais na Landing
+# MAGIC Cada fonte tem sua pasta. O notebook registra os meses que falharem e sinaliza extração incompleta.
+
+# COMMAND ----------
 
 def extract_year(source, year):
     _, folder, _ = SOURCES[source]
@@ -79,7 +110,27 @@ def extract_year(source, year):
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## 5. Selecionar a fonte e o ano
+# MAGIC Execute a célula de parâmetros e abra **Mostrar parâmetros**. Selecione `usgs` ou `emsc` e mantenha `2025` para o desafio.
+
+# COMMAND ----------
+
 if "dbutils" in globals():
     dbutils.widgets.dropdown("fonte", "usgs", list(SOURCES))
     dbutils.widgets.text("ano", "2025")
-    extract_year(dbutils.widgets.get("fonte"), int(dbutils.widgets.get("ano")))
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 6. Executar a extração
+# MAGIC Rode esta célula depois de escolher a fonte. Confira a saída de janeiro a dezembro antes de abrir o notebook 02.
+
+# COMMAND ----------
+
+if "dbutils" in globals():
+    source = dbutils.widgets.get("fonte")
+    year = int(dbutils.widgets.get("ano"))
+    print(f"Fonte: {source.upper()} | Ano: {year}")
+    extract_year(source, year)

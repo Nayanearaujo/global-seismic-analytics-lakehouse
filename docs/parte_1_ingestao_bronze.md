@@ -56,7 +56,7 @@ DESCRIBE HISTORY sismos.bronze.emsc_raw;
 
 O notebook de evidências compara a Bronze com as contagens da extração por fonte e mês. As **24 verificações** passaram, cada uma com um arquivo e a contagem esperada. Os totais foram **29.312 eventos no USGS** e **79.492 no EMSC**. Na reexecução do EMSC, a carga retornou **0 linhas novas** e a tabela permaneceu na **versão 2**.
 
-[Notebook de evidências](../notebooks/03_desafio_02_evidencias.py) · [Entrega do Desafio 2](https://github.com/ckoliveiraa/lakehouse-sismico/issues/3)
+[Notebook de evidências](../notebooks/evidencias_desafio_02.py) · [Entrega do Desafio 2](https://github.com/ckoliveiraa/lakehouse-sismico/issues/3)
 
 ### 1. Contagens mensais de USGS e EMSC
 

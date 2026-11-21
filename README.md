@@ -1,8 +1,6 @@
 # Global Seismic Analytics Lakehouse
 
-Projeto da trilha de Engenharia de Dados Pleno da EmpregaDados. O pipeline consulta os catálogos sísmicos do USGS e do EMSC e carrega os dados na camada Bronze do Databricks Free Edition. O recorte da Aula 2 vai de janeiro a dezembro de 2025, com magnitude mínima de 2,5.
-
-## Como executar
+## Como rodar
 
 1. Crie o catálogo, os schemas e os volumes com a **parte 2** do [SQL de configuração do Unity Catalog](notebooks/00_setup_and_delta_fundamentals.sql).
 2. Antes de baixar o histórico, confirme que o workspace consegue acessar a API com o [teste de conectividade do USGS](notebooks/00_validate_usgs_api.py).
@@ -11,6 +9,21 @@ Projeto da trilha de Engenharia de Dados Pleno da EmpregaDados. O pipeline consu
 5. Confira as contagens mensais e o histórico Delta no [notebook de evidências](notebooks/evidencias_desafio_02.py).
 
 Os caminhos de armazenamento, as consultas SQL e os prints estão no [guia da Aula 2](docs/parte_1_ingestao_bronze.md). O primeiro teste de ingestão está registrado no [notebook inicial do USGS](notebooks/ingestao_inicial_usgs.ipynb).
+
+## Sobre o projeto
+
+Projeto da trilha de Engenharia de Dados Pleno da EmpregaDados. O pipeline consulta os catálogos sísmicos do USGS e do EMSC e carrega os dados na camada Bronze do Databricks Free Edition. O recorte da Aula 2 vai de janeiro a dezembro de 2025, com magnitude mínima de 2,5.
+
+## Tecnologias usadas
+
+| Tecnologia | Uso no projeto |
+|---|---|
+| Databricks Free Edition | Execução dos notebooks e consultas ao histórico Delta. |
+| Python e Requests | Consumo das APIs FDSN, conferência das contagens e gravação dos arquivos mensais. |
+| Unity Catalog e Volumes | Organização do catálogo `sismos`, da Landing e dos checkpoints. |
+| Auto Loader e Spark | Leitura incremental dos arquivos e validação das contagens por fonte e mês. |
+| Delta Lake | Persistência das tabelas Bronze e registro das operações de carga. |
+| SQL | Comparação mensal dos catálogos e consulta ao histórico das tabelas. |
 
 ## Como os dados chegam à Bronze
 
@@ -38,3 +51,15 @@ Nos 24 pares de fonte e mês, a Bronze tinha um arquivo e a mesma contagem de ev
 ## Padrão de commits
 
 Use `tipo(escopo): descrição curta`, em português, com um verbo no presente. Mantenha uma mudança por commit. Por exemplo, `fix(bronze): corrige a leitura dos arquivos mensais`.
+
+| Tipo | Uso |
+|---|---|
+| `feat` | Nova funcionalidade |
+| `fix` | Correção de comportamento |
+| `docs` | Documentação |
+| `test` | Testes |
+| `chore` | Manutenção do repositório |
+
+## Autora
+
+[Nayane Oliveira](https://github.com/Nayanearaujo)

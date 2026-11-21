@@ -140,3 +140,24 @@ display(
 # MAGIC Em uma célula separada, execute `%run ./02_bronze_autoloader $fonte="emsc"`. O resultado esperado é `sismos.bronze.emsc_raw: 0 linhas novas`. Depois, execute novamente a consulta da seção 3 para verificar se a versão Delta permaneceu a mesma.
 # MAGIC
 # MAGIC Na execução de 20/11/2026, a tabela permaneceu na versão 2. [Evidências da execução](https://github.com/ckoliveiraa/lakehouse-sismico/issues/3#evid%C3%AAncias-da-execu%C3%A7%C3%A3o).
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Evidências da execução
+# MAGIC
+# MAGIC ### 1. Contagens mensais de USGS e EMSC
+# MAGIC
+# MAGIC ![Contagem mensal de eventos para USGS e EMSC](https://github.com/user-attachments/assets/d940db15-1ba4-417f-a448-9b9298d2cd70)
+# MAGIC
+# MAGIC ### 2. Reconciliação mensal com 24 verificações aprovadas
+# MAGIC
+# MAGIC ![Doze meses aprovados por fonte e zero divergências](https://github.com/user-attachments/assets/9bf1820b-323d-4383-bcbf-5a079c6cdaca)
+# MAGIC
+# MAGIC ### 3. Histórico Delta de `sismos.bronze.emsc_raw`
+# MAGIC
+# MAGIC ![Histórico Delta com as versões 0, 1 e 2 e microlotes de 10 e 2 linhas](https://github.com/user-attachments/assets/d8d8ddb6-79a7-44e2-9bb9-22c34eaaa6c4)
+# MAGIC
+# MAGIC ### 4. Reexecução do EMSC com zero linhas novas
+# MAGIC
+# MAGIC ![Saída da reexecução do EMSC com zero linhas novas](https://github.com/user-attachments/assets/e105153d-a81d-46f8-b608-5c88307adb3e)

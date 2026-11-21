@@ -7,10 +7,10 @@ O ano de 2025 é extraído em 12 janelas mensais UTC com magnitude mínima de 2,
 | USGS | `geojson` | `terremotos/ano=2025/mes=MM.geojson` | `terremotos_raw` |
 | EMSC | `json` | `emsc/ano=2025/mes=MM.geojson` | `emsc_raw` |
 
-1. No Databricks, crie o catálogo `sismos`, o schema `bronze` e os volumes `landing` e `checkpoints` com o setup da Aula 1.
+1. No Databricks, crie o catálogo `sismos`, o schema `bronze` e os volumes `landing` e `checkpoints` executando a parte 2 do [SQL de setup](../notebooks/00_setup_and_delta_fundamentals.sql).
 2. Execute `01_extract_usgs_landing.py` para cada fonte pelo widget `fonte`, com `ano=2025`. O notebook compara o `/count` com o número de eventos do `/query` em cada mês usando os mesmos filtros e encerra com erro se algum mês falhar. As janelas terminam no último milissegundo do mês para respeitar o limite inclusivo documentado pelo USGS. O código preserva os arquivos existentes e sinaliza revisões que alterem o conteúdo já publicado.
 3. Execute `02_bronze_autoloader.py` para cada fonte. Cada execução processa os arquivos disponíveis, grava uma linha por documento e termina. Rode a Bronze do EMSC pela segunda vez com o mesmo checkpoint. A saída esperada é `0 linhas novas`.
-4. Se o Databricks bloquear o USGS, o `landing_2025.zip` do professor pode ser extraído no volume landing, mantendo o caminho `terremotos/ano=2025/mes=MM.geojson`. Se o domínio do EMSC retornar `ConnectionError`, avise no grupo da turma conforme o guia.
+4. Se o Databricks bloquear o USGS, o `landing_2025.zip` do professor pode ser extraído no volume `landing`, mantendo o caminho `terremotos/ano=2025/mes=MM.geojson`. Se o domínio do EMSC retornar `ConnectionError`, avise no grupo da turma conforme o guia.
 
 ## Consulta de contagem mensal
 
@@ -76,4 +76,4 @@ O notebook de evidências compara a Bronze com as contagens da extração por fo
 
 ## Fontes
 
- [USGS](https://earthquake.usgs.gov/fdsnws/event/1/) · [EMSC SeismicPortal, CC BY 4.0](https://seismicportal.eu/fdsn-wsevent.html) · [Guia e desafio da Aula 2](https://ckoliveiraa.github.io/lakehouse-sismico/aula-2.html)
+[USGS](https://earthquake.usgs.gov/fdsnws/event/1/) · [EMSC SeismicPortal, CC BY 4.0](https://seismicportal.eu/fdsn-wsevent.html) · [Guia e desafio da Aula 2](https://ckoliveiraa.github.io/lakehouse-sismico/aula-2.html)

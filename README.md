@@ -12,7 +12,7 @@ Pipeline de dados sísmicos do USGS e do EMSC no Databricks Free Edition. A Aula
 | 4 | [Carga Bronze](notebooks/02_bronze_autoloader.py) | Execute para as duas fontes. Na primeira carga, espere 12 linhas por fonte. |
 | 5 | [Evidências do Desafio 2](notebooks/evidencias_desafio_02.py) | Consulte as contagens mensais, a reconciliação e o histórico Delta. |
 
-O [guia da Aula 2](docs/parte_1_ingestao_bronze.md) detalha os caminhos, as consultas SQL e a execução registrada. O [experimento inicial do USGS](experiments/README.md) fica separado dos notebooks de execução.
+O [guia da Aula 2](docs/parte_1_ingestao_bronze.md) detalha os caminhos, as consultas SQL e a execução registrada. O [notebook inicial do USGS](notebooks/ingestao_inicial_usgs.ipynb) documenta o primeiro teste de ingestão.
 
 ## Arquitetura
 
